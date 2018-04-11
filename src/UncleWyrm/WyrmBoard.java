@@ -67,6 +67,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
 
     private Timer timer;
 
+    /**
+     * Sets final values for board and wyrm pieces
+     */
     public WyrmBoard() {
         this.BOARD_HEIGHT = 500;
         this.BOARD_WIDTH = 500;
@@ -91,7 +94,7 @@ public class WyrmBoard extends JPanel implements ActionListener {
     }
 
     /**
-     *
+     * Sets values for JFrame and adds listener
      */
     public final void configureBoard() {
         addKeyListener(new UWAdapter());
@@ -101,6 +104,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
 
     }
 
+    /**
+     * Sets starting values and starts timer
+     */
     public final void initGame() {
         dots = 3;
 
@@ -115,12 +121,20 @@ public class WyrmBoard extends JPanel implements ActionListener {
         timer.start();
     }
 
+    /**
+     * Method runs on every timer iteration, calls drawing method
+     * @param g
+     */
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         doDrawing(g);
     }
 
+    /**
+     * Draws in components of board and wyrm
+     * @param g 
+     */
     private void doDrawing(Graphics g) {
         if (inGame) {
             if (allowWin) {
@@ -158,6 +172,10 @@ public class WyrmBoard extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Shows game over screen
+     * @param g 
+     */
     private void gameOver(Graphics g) {
         String end = "You Died";
         Font endFont = new Font("Helvetica", Font.BOLD, 14);
@@ -167,6 +185,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         g.drawString(end, (BOARD_WIDTH - metr.stringWidth(end)) / 2, BOARD_HEIGHT / 2);
     }
 
+    /**
+     * Checks for collision with apple, if true it finds the next one
+     */
     private void checkApple() {
         if ((x[0] >= appleX && x[0] <= appleX + (APPLE_RAD * 2)) && (y[0] >= appleY && y[0] <= appleY + (APPLE_RAD * 2))) {
             dots += 3;
@@ -178,6 +199,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Sets new positions of wyrm pieces
+     */
     private void move() {
         for (int j = dots; j > 0; j--) {
             x[j] = x[(j - 1)];
@@ -193,6 +217,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         y[0] += ySpeed;
     }
 
+    /**
+     * Checks for collisions with walls and wyrm body
+     */
     private void checkCollision() {
         for (int j = dots; j > 0; j--) {
             if ((j > 4) && (x[0] >= x[j] && x[0] <= x[j] + DOT_RAD + 2) && (y[0] >= y[j] && y[0] <= y[j] + DOT_RAD + 2)) {
@@ -237,6 +264,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Sets default values for next level
+     */
     private void nextLevel() {
         this.degree = 0.0;
 
@@ -248,6 +278,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         initGame();
     }
 
+    /**
+     * Finds new apple position
+     */
     private void locateApple() {
         int r = (int) (Math.random() * RAND_POS);
         appleX = r * APPLE_RAD;
@@ -263,6 +296,10 @@ public class WyrmBoard extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Timer iteration triggers this method, runs major gameplay methods
+     * @param e 
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (inGame) {
@@ -273,6 +310,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
         repaint();
     }
 
+    /**
+     * Adaptation of key listener specific to this game
+     */
     public class UWAdapter implements KeyListener {
 
         public boolean t = true;
@@ -280,6 +320,9 @@ public class WyrmBoard extends JPanel implements ActionListener {
 
         public Timer timer;
 
+        /**
+         * Contains timer to rotate wyrm
+         */
         public UWAdapter() {
             if (inGame) {
                 new Timer(20, (ActionEvent arg0) -> {
@@ -298,15 +341,27 @@ public class WyrmBoard extends JPanel implements ActionListener {
             }
         }
 
+        /**
+         * Necessary override, does nothing
+         * @param e
+         */
         @Override
         public void keyTyped(KeyEvent e) {
         }
 
+        /**
+         * Adds key pressed to Hashset
+         * @param e 
+         */
         @Override
         public void keyPressed(KeyEvent e) {
             pressed.add(e.getKeyCode());
         }
 
+        /**
+         * Removes key released from Hashset
+         * @param e 
+         */
         @Override
         public void keyReleased(KeyEvent e) {
             pressed.remove(e.getKeyCode());
