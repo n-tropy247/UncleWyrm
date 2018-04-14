@@ -19,21 +19,25 @@ package UncleWyrm;
 import java.awt.EventQueue;
 import javax.swing.JFrame;
 /**
- * JFrame container
+ * Creates actual game utilizing WyrmBoard class
  * 
  * @author NTropy
- * @version 1.0
+ * @version 2.0
  */
 public class UncleWyrm extends JFrame
 {
+
+    /**
+     * Constructor for JFrame
+     */
     public UncleWyrm() {
         configureBoard();
     }
     
     /**
-     *
+     * Configures JFrame options
      */
-    public final void configureBoard(){
+    private void configureBoard(){
         add(new WyrmBoard());
         setResizable(false);
         pack();
@@ -43,6 +47,10 @@ public class UncleWyrm extends JFrame
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
+    /**
+     * Creates the game runnable
+     * @param args
+     */
     public static void main(String args[]) {
         EventQueue.invokeLater(() -> {
             JFrame ex = new UncleWyrm();
