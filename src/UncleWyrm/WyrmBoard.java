@@ -121,7 +121,7 @@ public class WyrmBoard extends JPanel implements ActionListener {
      * Initializes starting values for game board and starts movement timer
      */
     public final void initGame() {
-        dots = 33;
+        dots = 3;
 
         if (levelOne) {
             for (int j = 0; j < dots; j++) {
