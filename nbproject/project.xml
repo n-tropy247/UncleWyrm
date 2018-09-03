@@ -12,6 +12,7 @@
             </test-roots>
         </data>
         <spellchecker-wordlist xmlns="http://www.netbeans.org/ns/spellchecker-wordlist/1">
+            <word>fps</word>
             <word>hashset</word>
             <word>wyrm</word>
         </spellchecker-wordlist>

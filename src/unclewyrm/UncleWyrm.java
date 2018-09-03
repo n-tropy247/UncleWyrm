@@ -14,44 +14,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package UncleWyrm;
+package unclewyrm;
 
 import java.awt.EventQueue;
 import javax.swing.JFrame;
 /**
- * Creates actual game utilizing WyrmBoard class
- * 
+ * Creates actual game utilizing WyrmBoard class.
+ *
  * @author NTropy
- * @version 2.0
+ * @version 9/3/2018
  */
-public class UncleWyrm extends JFrame
-{
+public class UncleWyrm extends JFrame {
 
     /**
-     * Constructor for JFrame
+     * Constructor for JFrame.
      */
     public UncleWyrm() {
         configureBoard();
     }
-    
+
     /**
-     * Configures JFrame options
+     * Configures JFrame options.
      */
-    private void configureBoard(){
+    private void configureBoard() {
         add(new WyrmBoard());
         setResizable(false);
         pack();
-        
+
         setTitle("Uncle Wyrm");
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
-    
+
     /**
-     * Creates the game runnable
+     * Creates the game runnable.
      * @param args
+     *          command-line arguments
      */
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
         EventQueue.invokeLater(() -> {
             JFrame ex = new UncleWyrm();
             ex.setVisible(true);
