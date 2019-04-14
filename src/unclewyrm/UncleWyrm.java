@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Ryan Castelli
+ * Copyright (C) 2019 Ryan Castelli
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import javax.swing.JFrame;
  * Creates actual game utilizing WyrmBoard class.
  *
  * @author NTropy
- * @version 9/3/2018
+ * @version 4.14.2019
  */
 public class UncleWyrm extends JFrame {
 
@@ -42,7 +42,7 @@ public class UncleWyrm extends JFrame {
         pack();
 
         setTitle("Uncle Wyrm");
-        setLocationRelativeTo(null);
+        setLocationByPlatform(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 

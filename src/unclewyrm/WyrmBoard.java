@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Ryan Castelli
+ * Copyright (C) 2019 Ryan Castelli
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,89 +34,76 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 /**
- * Re-creating an old TI-83 game from scratch Credit for idea: Badja.
+ * Re-creating an old TI-83 game from scratch. Credit for idea: Badja.
  * http://www.ticalc.org/archives/files/fileinfo/96/9683.html
  *
  * @author NTropy
- * @version 9/3/2018
+ * @version 4.14.2019
  */
 public class WyrmBoard extends JPanel implements ActionListener {
 
     /**
-     * Height of board.
+     * Board dimensions.
      */
-    private static final int BOARD_HEIGHT = 500;
+    private static final int BOARD_HEIGHT = 500, BOARD_WIDTH = 500;
+
     /**
-     * Width of level one.
+     * Game pieces dimensions.
      */
-    private static final int BOARD_WIDTH_ONE = 500;
+    private static final int BODY_RAD = 5, APPLE_RAD = 15;
+
     /**
-     * Width of level two.
+     * Limits on number of pieces.
      */
-    private static final int BOARD_WIDTH_TWO = 400;
-    /**
-     * Width of level three.
-     */
-    private static final int BOARD_WIDTH_THREE = 300;
-    /**
-     * Radius of wyrm body pieces.
-     */
-    private static final int DOT_RAD = 5;
-    /**
-     * Radius of apples.
-     */
-    private static final int APPLE_RAD = 15;
-    /**
-     * Buffered max number of wyrm pieces.
-     */
-    private static final int NUM_DOTS = 50;
+    private static final int START_BODY_PIECES = 3,
+            MAX_BODY_PIECES_BUFFERED = 50, MAX_BODY_PIECES_NO_BUFFER = 36;
+
     /**
      * Seed value for random placement of apples.
      */
     private static final int RAND_POS = 23;
+
     /**
      * Thread delay to limit fps.
      */
     private static final int DELAY = 100;
+
     /**
-     * Delay on rotate thread.
+     * Delay on rotation thread.
      */
     private static final int ROTATE_DELAY = 20;
 
     /**
-     * Starting number of pieces.
+     * Positions of wyrm pieces.
      */
-     private static final int START_DOTS = 3;
+    private static final int[] X = new int[MAX_BODY_PIECES_BUFFERED],
+            Y = new int[MAX_BODY_PIECES_BUFFERED];
 
     /**
-     * Horizontal positions of wyrm pieces.
+     * Font size of status messaging.
      */
-    private static final int[] X = new int[NUM_DOTS];
+    private static final int FONT_SIZE = 14;
+
     /**
-     * Vertical positions of wyrm pieces.
+     * Score gain on hitting apple.
      */
-    private static final int[] Y = new int[NUM_DOTS];
+    private static final int SCORE_INC = 5;
 
     /**
      * Tracks number of wyrm pieces in play.
      */
-    private int dots;
+    private int pieces;
+
     /**
-     * Horizontal position of current apple.
+     * Position of current apple.
      */
-    private int appleX;
+    private int appleX, appleY;
+
     /**
-     * Vertical position of current apple.
+     * Current position modifier per update.
      */
-    private int appleY;
-    /**
-     * Current horizontal position modifier per update.
-     */
-    private int xSpeed;
-    /**
-     * Current vertical position modifier per update.
-     */
-    private int ySpeed;
+    private int xSpeed, ySpeed;
+
     /**
      * Tracks score.
      */
@@ -131,22 +118,12 @@ public class WyrmBoard extends JPanel implements ActionListener {
      * Tracks if game-ending scenario has been occurred.
      */
     private boolean inGame;
+
     /**
      * Tracks if game-winning is allowed.
      */
     private boolean allowWin;
-    /**
-     * Tracks if in level one.
-     */
-    private boolean levelOne;
-    /**
-     * Tracks if in level two.
-     */
-    private boolean levelTwo;
-    /**
-     * Tracks if in level three.
-     */
-    private boolean levelThree;
+
     /**
      * Tracks if game has been won.
      */
@@ -164,10 +141,8 @@ public class WyrmBoard extends JPanel implements ActionListener {
         this.degree = 0.0;
 
         this.inGame = true;
-        this.levelOne = true;
-        this.levelTwo = false;
-        this.levelThree = false;
         this.allowWin = false;
+        this.winGame = false;
 
         this.scoreCount = 0;
 
@@ -182,7 +157,7 @@ public class WyrmBoard extends JPanel implements ActionListener {
         addKeyListener(new UWAdapter());
         setBackground(Color.gray);
         setFocusable(true);
-        setPreferredSize(new Dimension(BOARD_WIDTH_ONE, BOARD_HEIGHT));
+        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT));
 
     }
 
@@ -190,26 +165,14 @@ public class WyrmBoard extends JPanel implements ActionListener {
      * Initializes starting values for game board and starts movement timer.
      */
     public final void initGame() {
-        dots = START_DOTS;
+        final int startX = 50, xSpacing = 10, startY = 50;
 
-        if (levelOne) {
-            for (int j = 0; j < dots; j++) {
-                X[j] = 50 - j * 10;
-                Y[j] = 50;
-            }
-        } else if (levelTwo) {
-            for (int j = 0; j < dots; j++) {
-                X[j] = 100 - j * 10;
-                Y[j] = 50;
-            }
-        } else if (levelThree) {
-            for (int j = 0; j < dots; j++) {
-                X[j] = 150 - j * 10;
-                Y[j] = 50;
-            }
+        pieces = START_BODY_PIECES;
+
+        for (int j = 0; j < pieces; j++) {
+            X[j] = startX - j * xSpacing;
+            Y[j] = startY;
         }
-
-        winGame = false;
 
         locateApple();
 
@@ -220,11 +183,10 @@ public class WyrmBoard extends JPanel implements ActionListener {
     /**
      * Runs on repaint, passes graphics to draw method.
      *
-     * @param g
-     *          Graphics of frame
+     * @param g Graphics of frame
      */
     @Override
-    public void paintComponent(final Graphics g) {
+    public final void paintComponent(final Graphics g) {
         super.paintComponent(g);
         if (winGame) {
             winGameScreen(g);
@@ -236,110 +198,53 @@ public class WyrmBoard extends JPanel implements ActionListener {
     /**
      * Draws in wyrm components, apple, and scoreboard.
      *
-     * @param g
-     *          Graphics of frame
+     * @param g Graphics of frame
      */
     private void doDrawing(final Graphics g) {
-        if (inGame && levelOne) {
+        final int borderStartX = 2, borderY = 20, normalBorderBottomMargin = 45,
+                normalBorderRightMargin = 5, winBorderBottomMargin = 25,
+                winBorderRightMargin = 4, winBorderHoleWidth = 20,
+                winMsgX = 5, winMsgY = 15;
+
+        if (inGame) {
             if (allowWin) {
                 //top border with hole
-                g.drawLine(2, 20, BOARD_WIDTH_ONE / 2 - 20, 20);
-                g.drawLine(BOARD_WIDTH_ONE / 2 + 20, 20,
-                        BOARD_WIDTH_ONE - 4, 20);
+                g.drawLine(borderStartX, borderY, BOARD_WIDTH / 2
+                        - winBorderHoleWidth, borderY);
+                g.drawLine(BOARD_WIDTH / 2 + winBorderHoleWidth, borderY,
+                        BOARD_WIDTH - winBorderRightMargin, borderY);
 
-                g.drawLine(2, 20, 2, BOARD_HEIGHT - 25); //left
-                g.drawLine(BOARD_WIDTH_ONE - 4, 20, BOARD_WIDTH_ONE - 4,
-                        BOARD_HEIGHT - 25); //right
-                g.drawLine(2, BOARD_HEIGHT - 25, BOARD_WIDTH_ONE - 4,
-                        BOARD_HEIGHT - 25); //bottom
+                g.drawLine(borderStartX, borderY, borderStartX, BOARD_HEIGHT
+                        - winBorderBottomMargin); //left
+                g.drawLine(BOARD_WIDTH - winBorderRightMargin, borderY,
+                        BOARD_WIDTH - winBorderRightMargin,
+                        BOARD_HEIGHT - winBorderBottomMargin); //right
+                g.drawLine(borderStartX, BOARD_HEIGHT - winBorderBottomMargin,
+                        BOARD_WIDTH - winBorderRightMargin,
+                        BOARD_HEIGHT - winBorderBottomMargin); //bottom
             } else {
-                g.drawRect(2, 20, BOARD_WIDTH_ONE - 5, BOARD_HEIGHT - 45);
+                g.drawRect(borderStartX, borderY, BOARD_WIDTH
+                        - normalBorderRightMargin, BOARD_HEIGHT
+                        - normalBorderBottomMargin);
+
                 g.setColor(Color.red);
                 g.fillOval(appleX, appleY, APPLE_RAD, APPLE_RAD);
             }
-            for (int j = 0; j < dots; j++) {
+            for (int j = 0; j < pieces; j++) {
                 if (j == 0) {
                     g.setColor(Color.green);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
+                    g.fillOval(X[j], Y[j], BODY_RAD, BODY_RAD);
                 } else {
                     g.setColor(Color.orange);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
+                    g.fillOval(X[j], Y[j], BODY_RAD, BODY_RAD);
                 }
             }
 
             String score = "Score: " + scoreCount;
-            Font scoreFont = new Font("Helvetica", Font.BOLD, 14);
+            Font scoreFont = new Font("Helvetica", Font.BOLD, FONT_SIZE);
             g.setColor(Color.black);
             g.setFont(scoreFont);
-            g.drawString(score, 5, 15);
-
-            Toolkit.getDefaultToolkit().sync();
-        } else if (inGame && levelTwo) {
-            if (allowWin) {
-                //top border with hole
-                g.drawLine(52, 20, (BOARD_WIDTH_TWO + 84) / 2 - 20, 20);
-                g.drawLine((BOARD_WIDTH_TWO + 84) / 2 + 20, 20, BOARD_WIDTH_TWO
-                        + 47, 20);
-
-                g.drawLine(52, 20, 52, BOARD_HEIGHT - 25); //left
-                g.drawLine(BOARD_WIDTH_TWO + 47, 20, BOARD_WIDTH_TWO + 47,
-                        BOARD_HEIGHT - 25); //right
-                g.drawLine(52, BOARD_HEIGHT - 25, BOARD_WIDTH_TWO + 47,
-                        BOARD_HEIGHT - 25); //bottom
-            } else {
-                g.drawRect(52, 20, BOARD_WIDTH_TWO - 5, BOARD_HEIGHT - 45);
-                g.setColor(Color.red);
-                g.fillOval(appleX, appleY, APPLE_RAD, APPLE_RAD);
-            }
-            for (int j = 0; j < dots; j++) {
-                if (j == 0) {
-                    g.setColor(Color.green);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
-                } else {
-                    g.setColor(Color.orange);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
-                }
-            }
-
-            String score = "Score: " + scoreCount;
-            Font scoreFont = new Font("Helvetica", Font.BOLD, 14);
-            g.setColor(Color.black);
-            g.setFont(scoreFont);
-            g.drawString(score, 5, 15);
-
-            Toolkit.getDefaultToolkit().sync();
-        } else if (inGame && levelThree) {
-            if (allowWin) {
-                //top border with hole
-                g.drawLine(102, 20, (BOARD_WIDTH_THREE + 200) / 2 - 20, 20);
-                g.drawLine((BOARD_WIDTH_THREE + 200) / 2 + 20, 20,
-                        BOARD_WIDTH_THREE + 97, 20);
-
-                g.drawLine(102, 20, 102, BOARD_HEIGHT - 25); //left
-                g.drawLine(BOARD_WIDTH_THREE + 97, 20, BOARD_WIDTH_THREE +
-                        97, BOARD_HEIGHT - 25); //right
-                g.drawLine(102, BOARD_HEIGHT - 25, BOARD_WIDTH_THREE + 97,
-                        BOARD_HEIGHT - 25); //bottom
-            } else {
-                g.drawRect(102, 20, BOARD_WIDTH_THREE - 5, BOARD_HEIGHT - 45);
-                g.setColor(Color.red);
-                g.fillOval(appleX, appleY, APPLE_RAD, APPLE_RAD);
-            }
-            for (int j = 0; j < dots; j++) {
-                if (j == 0) {
-                    g.setColor(Color.green);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
-                } else {
-                    g.setColor(Color.orange);
-                    g.fillOval(X[j], Y[j], DOT_RAD, DOT_RAD);
-                }
-            }
-
-            String score = "Score: " + scoreCount;
-            Font scoreFont = new Font("Helvetica", Font.BOLD, 14);
-            g.setColor(Color.black);
-            g.setFont(scoreFont);
-            g.drawString(score, 5, 15);
+            g.drawString(score, winMsgX, winMsgY);
 
             Toolkit.getDefaultToolkit().sync();
         } else if (!inGame) {
@@ -348,33 +253,35 @@ public class WyrmBoard extends JPanel implements ActionListener {
     }
 
     /**
-     * Draws game over screen if collision detected
+     * Draws game over screen if collision detected.
      *
-     * @param g
+     * @param g Graphics of frame
      */
-    private void gameOver(Graphics g) {
+    private void gameOver(final Graphics g) {
+        final int endMsgYMargin = 15;
+
         String end = "You Died";
         String score = "Score: " + scoreCount;
-        Font endFont = new Font("Helvetica", Font.BOLD, 14);
+        Font endFont = new Font("Helvetica", Font.BOLD, FONT_SIZE);
         FontMetrics metr = getFontMetrics(endFont);
         g.setColor(Color.black);
         g.setFont(endFont);
-        g.drawString(end, (BOARD_WIDTH_ONE - metr.stringWidth(end)) / 2,
-                BOARD_HEIGHT / 2 - 15);
-        g.drawString(score, (BOARD_WIDTH_ONE - metr.stringWidth(end)) / 2,
+        g.drawString(end, (BOARD_WIDTH - metr.stringWidth(end)) / 2,
+                BOARD_HEIGHT / 2 - endMsgYMargin);
+        g.drawString(score, (BOARD_WIDTH - metr.stringWidth(end)) / 2,
                 BOARD_HEIGHT / 2);
     }
 
     /**
-     * Checks for collision with apple
+     * Checks for collision with apple.
      */
     private void checkApple() {
-        if (dots < 36) {
+        if (pieces < MAX_BODY_PIECES_NO_BUFFER) {
             if ((X[0] >= appleX - 2 && X[0] <= appleX + APPLE_RAD)
                     && (Y[0] >= appleY && Y[0] <= appleY + APPLE_RAD)) {
-                dots += 3;
-                scoreCount += 5;
-                for (int j = dots - 3; j <= dots; j++) {
+                pieces += START_BODY_PIECES;
+                scoreCount += SCORE_INC;
+                for (int j = pieces - START_BODY_PIECES; j <= pieces; j++) {
                     X[j] = X[(j - 1)];
                     Y[j] = Y[(j - 1)];
                 }
@@ -384,17 +291,20 @@ public class WyrmBoard extends JPanel implements ActionListener {
     }
 
     /**
-     * Moves wyrm by updating position of body pieces to that of its predecessor.
+     * Moves wyrm by updating position of body pieces to that of its
+     * predecessor.
      */
     private void move() {
-        for (int j = dots; j > 0; j--) {
+        final double speedMultiplier = 10.0;
+
+        for (int j = pieces; j > 0; j--) {
             X[j] = X[(j - 1)];
             Y[j] = Y[(j - 1)];
         }
 
-        xSpeed = (int) (10.0 * Math.cos(Math.toRadians(degree)));
+        xSpeed = (int) (speedMultiplier * Math.cos(Math.toRadians(degree)));
 
-        ySpeed = (int) (10.0 * Math.sin(Math.toRadians(degree)));
+        ySpeed = (int) (speedMultiplier * Math.sin(Math.toRadians(degree)));
 
         X[0] += xSpeed;
 
@@ -405,123 +315,75 @@ public class WyrmBoard extends JPanel implements ActionListener {
      * Checks for collision with walls or body of wyrm.
      */
     private void checkCollision() {
-        for (int j = dots; j > 0; j--) {
-            if ((j > 4) && (X[0] >= X[j] && X[0] <= X[j] + DOT_RAD + 2)
-                    && (Y[0] >= Y[j] && Y[0] <= Y[j] + DOT_RAD + 2)) {
+        final int headPieceBuffer = 4, lowerWallHeightNonWin = 35,
+                lowerWallHeightWin = 25, upperWallHeight = 20,
+                rightWallBuffer = 11, leftWallMargin = 7, winPortalWidth = 20,
+                pieceSpacing = 2;
+
+        for (int j = pieces; j > 0; j--) {
+            if ((j > headPieceBuffer) && (X[0] >= X[j] && X[0] <= X[j]
+                    + BODY_RAD + pieceSpacing) && (Y[0] >= Y[j] && Y[0] <= Y[j]
+                    + BODY_RAD + pieceSpacing)) {
                 inGame = false;
             }
         }
 
         if (!allowWin) {
-            if (Y[0] >= BOARD_HEIGHT - 35) {
+            if (Y[0] >= BOARD_HEIGHT - lowerWallHeightNonWin) {
                 inGame = false;
             }
         } else {
-            if (Y[0] >= BOARD_HEIGHT - 25) {
+            if (Y[0] >= BOARD_HEIGHT - lowerWallHeightWin) {
                 inGame = false;
             }
         }
 
-        if (Y[0] <= 20) {
+        if (Y[0] <= upperWallHeight) {
             inGame = false;
         }
 
-        if (levelOne) {
-            if (X[0] >= BOARD_WIDTH_ONE - 11) {
-                inGame = false;
-            } else if (X[0] <= 5) {
-                inGame = false;
-            }
+        if (X[0] >= BOARD_WIDTH - rightWallBuffer) {
+            inGame = false;
+        } else if (X[0] <= leftWallMargin) {
+            inGame = false;
+        }
 
-            if (dots >= 36) {
-                allowWin = true;
-            }
+        if (pieces >= MAX_BODY_PIECES_NO_BUFFER) {
+            allowWin = true;
+        }
 
-            if (allowWin && X[0] >= BOARD_WIDTH_ONE / 2 - 20
-                    && X[0] <= BOARD_WIDTH_ONE / 2 + 20 && Y[0] <= 20) {
-                this.timer.stop();
-                nextLevel();
-            }
-        } else if (levelTwo) {
-            if (X[0] >= BOARD_WIDTH_TWO + 35) {
-                inGame = false;
-            } else if (X[0] <= 55) {
-                inGame = false;
-            }
-
-            if (dots >= 36) {
-                allowWin = true;
-            }
-
-            if (allowWin && X[0] >= (BOARD_WIDTH_TWO + 84) / 2 - 20
-                    && X[0] <= (BOARD_WIDTH_TWO + 84) / 2 + 20 && Y[0] <= 20) {
-                this.timer.stop();
-                nextLevel();
-            }
-        } else if (levelThree) {
-            if (!allowWin && X[0] >= BOARD_WIDTH_THREE + 85) {
-                inGame = false;
-            } else if (allowWin && X[0] >= BOARD_WIDTH_THREE + 85) {
-                inGame = false;
-            } else if (X[0] <= 105) {
-                inGame = false;
-            }
-
-            if (dots >= 36) {
-                allowWin = true;
-            }
-
-            if (allowWin && X[0] >= (BOARD_WIDTH_THREE + 200) / 2 - 20
-                    && X[0] <= (BOARD_WIDTH_THREE + 200) / 2 + 20
-                    && Y[0] <= 20) {
-                this.timer.stop();
-                winGame = true;
-            }
+        if (allowWin && X[0] >= BOARD_WIDTH / 2 - winPortalWidth
+                && X[0] <= BOARD_WIDTH / 2 + winPortalWidth
+                && Y[0] <= upperWallHeight) {
+            this.timer.stop();
+            inGame = false;
+            winGame = true;
         }
 
         if (!inGame) {
             this.timer.stop();
         }
-        for (int j = dots; j > 0; j--) {
-            if ((j > 4) && (X[0] >= X[j] && X[0] <= X[j] + DOT_RAD + 2)
-                    && (Y[0] >= Y[j] && Y[0] <= Y[j] + DOT_RAD + 2)) {
+        for (int j = pieces; j > 0; j--) {
+            if ((j > headPieceBuffer) && (X[0] >= X[j] && X[0] <= X[j]
+                    + BODY_RAD + pieceSpacing) && (Y[0] >= Y[j] && Y[0] <= Y[j]
+                    + BODY_RAD + pieceSpacing)) {
                 inGame = false;
             }
         }
     }
 
     /**
-     * Sets default values for next level.
-     */
-    private void nextLevel() {
-        if (levelOne) {
-            levelOne = false;
-            levelTwo = true;
-        } else if (levelTwo) {
-            levelTwo = false;
-            levelThree = true;
-        }
-        this.degree = 0.0;
-
-        this.inGame = true;
-        this.allowWin = false;
-
-        initGame();
-    }
-
-    /**
      * Draws in win screen.
      *
-     * @param g
-     *          Graphics of frame
+     * @param g Graphics of frame
      */
     private void winGameScreen(final Graphics g) {
         String win = "You Win!";
-        Font endFont = new Font("Helvetica", Font.BOLD, 14);
+        Font endFont = new Font("Helvetica", Font.BOLD, FONT_SIZE);
         FontMetrics metr = getFontMetrics(endFont);
         g.setColor(Color.black);
         g.setFont(endFont);
-        g.drawString(win, (BOARD_WIDTH_ONE - metr.stringWidth(win)) / 2,
+        g.drawString(win, (BOARD_WIDTH - metr.stringWidth(win)) / 2,
                 BOARD_HEIGHT / 2);
     }
 
@@ -529,43 +391,34 @@ public class WyrmBoard extends JPanel implements ActionListener {
      * Finds new apple position once an apple has been collected.
      */
     private void locateApple() {
-        int r = (int) (Math.random() * RAND_POS);
-        appleX = r * APPLE_RAD;
-        if (levelOne) {
-            while (appleX > BOARD_WIDTH_ONE - (5 + (2 * APPLE_RAD))
-                    || appleX < 5) {
-                r = (int) (Math.random() * RAND_POS);
-                appleX = r * APPLE_RAD;
-            }
-        } else if (levelTwo) {
-            while (appleX > BOARD_WIDTH_ONE - (55 + (2 * APPLE_RAD))
-                    || appleX < 55) {
-                r = (int) (Math.random() * RAND_POS);
-                appleX = r * APPLE_RAD;
-            }
-        } else if (levelThree) {
-            while (appleX > BOARD_WIDTH_ONE - (105 + (2 * APPLE_RAD))
-                    || appleX < 105) {
-                r = (int) (Math.random() * RAND_POS);
-                appleX = r * APPLE_RAD;
-            }
+        final int appleXBuffer = 5, appleLowerYBuffer = 25,
+                appleUpperYBuffer = 20;
+
+        int random = (int) (Math.random() * RAND_POS);
+        appleX = random * APPLE_RAD;
+
+        while (appleX > BOARD_WIDTH - (appleXBuffer + (2 * APPLE_RAD))
+                || appleX < appleXBuffer) {
+            random = (int) (Math.random() * RAND_POS);
+            appleX = random * APPLE_RAD;
         }
-        r = (int) (Math.random() * RAND_POS);
-        appleY = r * APPLE_RAD;
-        while (appleY > BOARD_HEIGHT - 25 || appleY < 20) {
-            r = (int) (Math.random() * RAND_POS);
-            appleY = r * APPLE_RAD;
+
+        random = (int) (Math.random() * RAND_POS);
+        appleY = random * APPLE_RAD;
+        while (appleY > BOARD_HEIGHT - appleLowerYBuffer
+                || appleY < appleUpperYBuffer) {
+            random = (int) (Math.random() * RAND_POS);
+            appleY = random * APPLE_RAD;
         }
     }
 
     /**
      * Runs major game methods on timer refresh.
      *
-     * @param e
-     *          ActionEvent passed on every timer iteration
+     * @param e ActionEvent passed on every timer iteration
      */
     @Override
-    public void actionPerformed(ActionEvent e) {
+    public final void actionPerformed(final ActionEvent e) {
         if (inGame) {
             checkApple();
             checkCollision();
@@ -585,25 +438,25 @@ public class WyrmBoard extends JPanel implements ActionListener {
         private final HashSet<Integer> pressed = new HashSet<>();
 
         /**
-         * Thread of rotation.
+         * Degrees of rotation gained/lost on keypress.
          */
-        public Timer timer;
+        private final double degInc = 11.25, maxDeg = 360.0;
 
         /**
          * Constructor starts timer for rotation on separate thread.
          */
         public UWAdapter() {
             if (inGame) {
-                new Timer(ROTATE_DELAY, (ActionEvent arg0) -> {
+                new Timer(ROTATE_DELAY, (ActionEvent unused) -> {
                     if (pressed.contains(KeyEvent.VK_RIGHT)) {
-                        degree += 11.25;
-                        if (degree >= 360.0) {
+                        degree += degInc;
+                        if (degree >= maxDeg) {
                             degree = 0.0;
                         }
                     } else if (pressed.contains(KeyEvent.VK_LEFT)) {
-                        degree -= 11.25;
+                        degree -= degInc;
                         if (degree < 0) {
-                            degree = 360.0 - 11.25;
+                            degree = maxDeg - degInc;
                         }
                     }
                 }).start();
@@ -613,8 +466,7 @@ public class WyrmBoard extends JPanel implements ActionListener {
         /**
          * Does nothing, necessary override.
          *
-         * @param e
-         *          KeyEvent passed on key type
+         * @param e KeyEvent passed on key type
          */
         @Override
         public void keyTyped(final KeyEvent e) {
@@ -623,22 +475,20 @@ public class WyrmBoard extends JPanel implements ActionListener {
         /**
          * Adds key pressed to HashSet.
          *
-         * @param e
-         *          KeyEvent passed on key press
+         * @param e KeyEvent passed on key press
          */
         @Override
-        public void keyPressed(final KeyEvent e) {
+        public final void keyPressed(final KeyEvent e) {
             pressed.add(e.getKeyCode());
         }
 
         /**
          * Removes key released from HashSet.
          *
-         * @param e
-         *          KeyEvent passed on key release
+         * @param e KeyEvent passed on key release
          */
         @Override
-        public void keyReleased(final KeyEvent e) {
+        public final void keyReleased(final KeyEvent e) {
             pressed.remove(e.getKeyCode());
         }
     }
